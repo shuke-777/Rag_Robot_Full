@@ -108,17 +108,35 @@ def create_qa_chain(llm, history_aware_retriever):
     )
     return qa_full_chain
 
+def invoke_limit_history(chain,question, chat_history,max_rounds,):
+    """
+    手动限制聊天记录长度
+    """
+    max_messages = max_rounds * 2
+    if len(chat_history)>max_messages:
+        history = chat_history[-max_messages:]
+    else:
+        history = chat_history
+    limit_result_history = chain.invoke({'input':question,'chat_history':history})
+    return limit_result_history
 
 # 会话存储
 store = {}
 
-
+##在原有的基础上，限制历史长度
 def get_session_history(session_id: str):
     """获取或创建会话历史"""
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
-
+    try:
+        if session_id not in store:
+            store[session_id] = ChatMessageHistory()
+        history = store[session_id]
+        if len(history.messages)>20:
+            #保留最近20条记录
+            history.messages = history.messages[-20:]
+        return history
+    except Exception as e:
+        print(f"Error: {e}")
+        return ChatMessageHistory()
 
 def get_rag_chain(rag_chain):
     """创建带历史管理的RAG链"""
@@ -186,3 +204,21 @@ if __name__ == '__main__':
     for i, message in enumerate(history.messages):
         msg_type = '用户' if isinstance(message, HumanMessage) else 'AI'
         print(f'{i},[{msg_type}]:{message.content}', end='\n\n')
+
+    print('-' * 30, '3_限制历史记录长度')
+    # 手动管理聊天历史
+    chat_history1 = []
+    question1 = '解析木怎么选择'
+    result1 = invoke_limit_history(qa_chain, question1, chat_history1, 10)
+    chat_history1.extend([
+        HumanMessage(content=question1),
+        AIMessage(content=result1)
+    ])
+
+    question2 = '它的密度单位是什么'
+    result1 = invoke_limit_history(qa_chain, question1, chat_history1, 10)
+    chat_history1.extend([
+        HumanMessage(content=question2),
+        AIMessage(content=result2)
+    ])
+    print(chat_history1)
