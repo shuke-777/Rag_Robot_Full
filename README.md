@@ -122,7 +122,8 @@ rag_chain.invoke(
 - [ ] Web UI 界面
 - [ ] 多用户会话管理
 - [ ] 检索结果评分可视化
-
+## 致谢
+- 感谢我的女朋友@luojia和我们的家人@black，他们能一直忍受我的烂情绪和安慰我
 ## 许可证
 
 MIT License
