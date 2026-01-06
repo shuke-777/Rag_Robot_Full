@@ -3,13 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse,FileResponse
 from fastapi.staticfiles import StaticFiles
 import sys
-from config.path_config import (
-    PROJECT_ROOT, KB_LIST_DIR, KB_DIR, KB_SAVE_PATH_DIR, KB_PARSE_RESULT_DIR,
-    PRIVATE_KB_DIR, PRIVATE_KB_VECTOR, DATA_DIR, RAW_DATA_DIR, DOCUMENTS_DIR,
-    EVALUATION_DIR, EVALUATION_RESULTS_DIR, TEST_DATASET_PATH,
-    VECTOR_STORE_DIR, DB_DIR, BGE_RERANKER_MODEL
-)
-sys.path.append(str(DB_DIR))
+sys.path.append('/Users/salutethedawn/Desktop/编程用文件夹/西瓜/hw项目跟敲/private项目/rag-chatbot/db')
 from rag_with_async_table import main,invoke_save,single_question,rag_chain
 import uvicorn
 import os
