@@ -8,6 +8,9 @@
 """
 import asyncio
 import secrets
+import sys
+sys.path.append('..')
+from rag_config import db_url
 from sqlalchemy.ext.asyncio import create_async_engine,async_sessionmaker
 from sqlalchemy import select,inspect
 from contextlib import asynccontextmanager
@@ -16,10 +19,9 @@ from langchain_core.chat_history import AIMessage,HumanMessage,BaseChatMessageHi
 from langchain_community.chat_message_histories import ChatMessageHistory
 from v3_rerank_rag_private import SimpleRerank
 from v2_rag_with_stream_async import llm, load_vector_store,create_history_aware_retriever_chain, create_qa_chain,RunnableWithMessageHistory
-db_url = 'mysql+aiomysql://shuke:123456@localhost/sk_db?charset=utf8mb4'
+import uuid
 engine = create_async_engine(url = db_url)
 async_session = async_sessionmaker(bind=engine)
-import uuid
 @asynccontextmanager
 async def get_async_db():
     async with async_session() as db:
@@ -47,7 +49,7 @@ async def save_history_db(session_id:str,content:str,role:str):
             message_add_content = MessagesTableNew(content =content,role = role,session_id = session_result.id)
             db.add(message_add_content)
             await db.commit()
-            print('数据保存成功')
+            #print('数据保存成功')
 
         except Exception as e:
             await db.rollback()
@@ -82,7 +84,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 
-async def invoke_save(session_id:str,rag):
+async def invoke_save(session_id:str,rag,**kwargs):
     if session_id not in store:
         print(f'[预加载] 从数据库加载 session:{session_id}')
         store[session_id] = await load_db_history(session_id)
@@ -149,14 +151,6 @@ async def main():
     #async with get_async_db() as db:
     await invoke_save('test2',rag_chain)
     await engine.dispose()
-local_store = '/Users/salutethedawn/Desktop/编程用文件夹/西瓜/hw项目跟敲/private项目/rag-chatbot/vector_store/1201Faiss.faiss'
-embed = load_vector_store(local_store)
-retriever = embed.as_retriever(search_kwargs={'k': 3})
-simple_rerank = SimpleRerank(model_name_or_path='/Users/salutethedawn/Desktop/model/bge-reranker-large',max_length=512,
-                             base_retriever=retriever)
-retriever_chain = create_history_aware_retriever_chain(llm=llm, retriever=simple_rerank)
-qa_chain = create_qa_chain(llm=llm, history_aware_retriever=retriever_chain)
-rag_chain = get_rag_chain_session(qa_chain, get_session=get_session_history)
 
 if __name__ == '__main__':
     asyncio.run(main())

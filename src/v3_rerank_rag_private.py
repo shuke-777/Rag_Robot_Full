@@ -3,9 +3,15 @@ from typing import Any
 import numpy as np
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.runnables.utils import Input, Output
-
-from config import get_device
+import asyncio
+from rag_config import get_device
 from sentence_transformers import CrossEncoder
+from config.path_config import (
+    PROJECT_ROOT, KB_LIST_DIR, KB_DIR, KB_SAVE_PATH_DIR, KB_PARSE_RESULT_DIR,
+    PRIVATE_KB_DIR, PRIVATE_KB_VECTOR, DATA_DIR, RAW_DATA_DIR, DOCUMENTS_DIR,
+    EVALUATION_DIR, EVALUATION_RESULTS_DIR, TEST_DATASET_PATH,
+    VECTOR_STORE_DIR, DB_DIR, BGE_RERANKER_MODEL
+)
 class SimpleRerank(Runnable):
     def __init__(self,model_name_or_path:str,
                  max_length:int =512,
@@ -13,7 +19,6 @@ class SimpleRerank(Runnable):
                  initial_k:int =10,
                  final_k :int = 3):
         self.device = get_device()
-        print(f'使用设备{self.device}')
         print(f'已经加载到rerank模型:{model_name_or_path}')
         self.model = CrossEncoder(
             model_name_or_path=model_name_or_path,
@@ -26,13 +31,13 @@ class SimpleRerank(Runnable):
             if not document_list:
                 return [],[],[]
             result = [[query,getattr(doc_i,'page_content',doc_i) ]for doc_i in  document_list]
-            print(result)
+            #print(result)
             score = self.model.predict(result)
-            print(score)
+            #print(score)
             score_k = min(self.final_k,len(document_list))
             #[1 4 2 3 0]就是从低到高来进行排序，这里显示的是下标
             sort_indices = np.argsort(score)[::-1][:score_k]
-            print(sort_indices)
+            #print(sort_indices)
             rerank_docs = [document_list[i]for i in sort_indices]
             rerank_score = [score[i]for i in sort_indices]
             return rerank_docs,rerank_score,sort_indices
@@ -50,11 +55,11 @@ class SimpleRerank(Runnable):
            print(f'retriever发生错误{e}')
        rerank_docs,rerank_score,sort_indices = self._rerank(document_list=result,query= query)
        for doc,score,indices in zip(rerank_docs,rerank_score,sort_indices):
-           print(f'{indices} {score:.3f} {doc}')
+           #print(f'{indices} {score:.3f} {doc}')
            doc.metadata['score'] = score
            doc.metadata['indices'] = indices
        return rerank_docs
-    async def ainvoke(self, query:str):
+    async def ainvoke(self, query:str,config = None,**kwargs):
         if self.base_retriever is None:
             #这里直接error并且退出，可以直接用logging 来打印错误信息
             raise ValueError("请先设置retriever")
@@ -65,14 +70,13 @@ class SimpleRerank(Runnable):
             docs = self.base_retriever.invoke(query)
         if not docs:
             return []
-        rerank_docs,rerank_score,sort_indices=self._rerank(docs,query=query)
+        rerank_docs, rerank_score, sort_indices = await asyncio.to_thread(self._rerank, document_list=docs, query=query)
+        #rerank_docs,rerank_score,sort_indices=self._rerank(docs,query=query)
         for doc, score, indices in zip(rerank_docs, rerank_score, sort_indices):
-            print(f'{indices} {score:.3f} {doc}')
+            #print(f'{indices} {score:.3f} {doc}')
             doc.metadata['score'] = score
             doc.metadata['indices'] = indices
         return rerank_docs
-
-
 
 
 if __name__ == '__main__':
@@ -84,6 +88,6 @@ if __name__ == '__main__':
         "工具函数可以提高代码的可维护性和复用性，减少重复代码。",
         "机器学习是人工智能的一个分支，专注于让计算机从数据中学习。"
     ]
-    model_name = '/Users/salutethedawn/Desktop/model/bge-reranker-large'
+    model_name = BGE_RERANKER_MODEL
     SimpleRerank = SimpleRerank(model_name_or_path=model_name)
     SimpleRerank._rerank(documents,query)

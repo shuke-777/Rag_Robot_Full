@@ -95,8 +95,9 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 # ==================== RAG 链初始化 ====================
+from config.path_config import VECTOR_STORE_DIR
 print('[初始化] 正在加载向量库...')
-local_store = '/Users/salutethedawn/Desktop/编程用文件夹/西瓜/hw项目跟敲/private项目/rag-chatbot/vector_store/1201Faiss.faiss'
+local_store = str(VECTOR_STORE_DIR / '1201Faiss.faiss')
 embed = load_vector_store(local_store)
 retriever = embed.as_retriever(search_kwargs={'k': 3})
 retriever_chain = create_history_aware_retriever_chain(llm=llm, retriever=retriever)

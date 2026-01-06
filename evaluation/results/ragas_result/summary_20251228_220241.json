@@ -1,0 +1,13 @@
+{
+  "timestamp": "20251228_220241",
+  "config": {
+    "kb_name": "private_kb",
+    "use_rerank": true
+  },
+  "metrics": {
+    "Faithfulness": NaN,
+    "Answer Relevancy": 0.7256481500788096,
+    "Context Precision": 0.9999999999,
+    "Context Recall": 1.0
+  }
+}
